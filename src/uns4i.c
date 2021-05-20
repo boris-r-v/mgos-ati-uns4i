@@ -1,11 +1,13 @@
 #include "uns4i.h"
 
-static struct uns4i_trc _uns4i_data_inner;
+static struct uns4i_trc uns4i_data_inner__;
 
 static uint16_t CRC16tabl( uint8_t *_buf, size_t _len );
 static struct uns4i_trc const* fill_inner( char const* _answer, size_t _len );
+static char const* get_request_string_inner( uint8_t _addr, uint8_t _code_isol, uint8_t _amplif );
+static size_t get_request_size_inner( void );
 
-
+/*
 static const struct mjs_c_struct_member uns4i_trc_descr[] = {
     {"VDC1", offsetof(struct uns4i_trc, VDC1), MJS_STRUCT_FIELD_TYPE_FLOAT, NULL },
     {"VAC1", offsetof(struct uns4i_trc, VAC1), MJS_STRUCT_FIELD_TYPE_FLOAT, NULL },
@@ -51,10 +53,15 @@ static const struct mjs_c_struct_member uns4i_trc_descr[] = {
 struct mjs_c_struct_member const* get_uns4i_trc_descr(void){
     return uns4i_trc_descr;
 };
+*/
 
-
-char const* get_request_string( uint8_t addr, uint8_t code_isol, uint8_t amplif ){
-    return "/x00/x6c/x03/x00/x01/x00/xa9/x23";
+char const* get_request_string( uint8_t _addr, uint8_t _code_isol, uint8_t _amplif )
+{
+    return get_request_string_inner(_addr, _code_isol, _amplif );//"/x00/x6c/x03/x00/x01/x00/xa9/x23";
+}
+size_t get_request_size( void )
+{
+    return get_request_size_inner( );
 }
 
 bool is_crc_good( char const* _answer, size_t _len )
@@ -73,16 +80,70 @@ struct uns4i_trc const* get_uns4i_data( char const* _answer, size_t _len )
 }
 
 
-bool mgos_usn4i_init(void){
+bool mgos_usn4i_init(void)
+{
     return true;
 }
 
-
-
-
-
-
 /*-----------private section----------------*/
+struct Uns4i_Request{
+    uint8_t start;          /* allways 0x00 */
+    uint8_t addr;           /* device address */
+    uint8_t command_len;    /* lenght of command field in bytes: 0x03 (command, code_isol, amplif) */
+    uint8_t command;        /* default - 0x00 get_data */
+    uint8_t code_isol;
+                            /* Resitanse, FRC_mode (low half byte) and code sizing mode (hight half byte)
+                                ISOL_MASK:         0x08
+                                FRC25_MASK:        0x01
+                                FRC50_MASK:        0x00
+                                    update 21.03.2018, implement 21.06.2018
+                                Code mode on 1-st channel mask:   0x10
+                                Code mode on 2-nd channel mask:   0x20
+                                Code mode on 3-rd channel mask:   0x40
+                                Code mode on 4-th channel mask:   0x80
+                            */
+    uint8_t amplif; 
+                           /* Amplify
+                                COEF_MASK       0x03
+                                COEF1_MASK      (COEF_MASK)<<0
+                                COEF2_MASK      (COEF_MASK)<<2
+                                COEF3_MASK      (COEF_MASK)<<4
+                                COEF4_MASK      (COEF_MASK)<<6
+                                channel coefficient
+                                    0x0: coefficient OFF
+                                    0x1: amplification ON
+                                    0x2: amplification AUTO
+                                    0x3: not used
+                        
+                            */
+    uint8_t crc1;           /* crc16 poly: 0x8005, high byte */
+    uint8_t crc2;           /* crc16 poly: 0x8005, low byte */
+}__attribute((packed));
+static struct Uns4i_Request uns4i_request_inner__;
+
+static char const* get_request_string_inner( uint8_t _addr, uint8_t _code_isol, uint8_t _amplif )
+{
+    bzero( &uns4i_request_inner__, sizeof(struct Uns4i_Request) );
+    uns4i_request_inner__.addr = _addr;
+    uns4i_request_inner__.command_len = 0x03;
+    uns4i_request_inner__.code_isol = _code_isol;
+    uns4i_request_inner__.amplif = _amplif;
+    
+    uint8_t crc_buff[sizeof(struct Uns4i_Request)-1];
+    memcpy( crc_buff, &uns4i_request_inner__.addr, sizeof(struct Uns4i_Request)-1 );
+
+    uint16_t crc = CRC16tabl( crc_buff, sizeof(crc_buff) );
+    uns4i_request_inner__.crc1=crc >> 8;
+    uns4i_request_inner__.crc2=crc & 0xff;
+    
+    return (const char*)&uns4i_request_inner__;    
+}
+static size_t get_request_size_inner( void )
+{
+    return sizeof(struct Uns4i_Request);
+}
+
+
 struct channelTRC{
     float VDC;
     float VAC;
@@ -106,12 +167,12 @@ static struct uns4i_trc const* fill_inner( char const* _answer, size_t _len )
     struct UnsTrc_Answer tmp;
     memcpy( &tmp, _answer, _len );
 
-    memcpy( &_uns4i_data_inner, tmp.TRC, 4*sizeof(struct channelTRC) );
+    memcpy( &uns4i_data_inner__, tmp.TRC, 4*sizeof(struct channelTRC) );
 
-    _uns4i_data_inner.uns_mode = tmp.mode;
-    _uns4i_data_inner.uns_diag = tmp.diag;
+    uns4i_data_inner__.uns_mode = tmp.mode;
+    uns4i_data_inner__.uns_diag = tmp.diag;
 
-    return &_uns4i_data_inner;
+    return &uns4i_data_inner__;
 }
 
 uint16_t crc_tab16[] =  {

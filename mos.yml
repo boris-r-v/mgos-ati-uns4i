@@ -17,10 +17,10 @@ tags:
   - js
   - docs:misc:Module_ATI
 
-#cdefs:
-#  MGOS_HAVE_JS: 1
-#build_vars:
-#  MGOS_HAVE_JS: 1
+cdefs:
+  MGOS_HAVE_JS: 1
+build_vars:
+  MGOS_HAVE_JS: 1
 
 manifest_version: 2017-09-29
 
