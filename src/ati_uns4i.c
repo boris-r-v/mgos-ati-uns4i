@@ -58,6 +58,11 @@ struct mjs_c_struct_member const* get_uns4i_trc_descr(void){
 };
 #endif
 
+char* get_request( int _addr )
+{
+    return (char*)get_request_string_inner(_addr & 0xff, 0x00, 0x00 );
+}
+
 char const* get_request_string( uint8_t _addr, uint8_t _code_isol, uint8_t _amplif )
 {
     return get_request_string_inner(_addr, _code_isol, _amplif );//"/x00/x6c/x03/x00/x01/x00/xa9/x23";

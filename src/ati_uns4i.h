@@ -29,12 +29,17 @@ struct uns4i_trc{
 struct mjs_c_struct_member const* get_uns4i_trc_descr(void);
 #endif
 
+char* get_request( int addr );
+
+
+/*----legacy----*/
 char const* get_request_string( uint8_t _addr, uint8_t _code_isol, uint8_t _amplif );
 size_t get_request_size( void );
 
 bool is_crc_good( char const* _answer, size_t _len );
 
 struct uns4i_trc const* get_uns4i_data( char const*  _answer, size_t _len );
+/*----legacy----*/
 
 
 
