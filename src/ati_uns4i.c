@@ -1,6 +1,8 @@
 #include "ati_uns4i.h"
 
 static struct uns4i_trc uns4i_data_inner__;
+bool mgos_ati_usn4i_init(void){ return true; }
+bool mgos_mgos_ati_usn4i_init(void){ return true; }
 
 static uint16_t CRC16tabl( uint8_t *_buf, size_t _len );
 static struct uns4i_trc const* fill_inner( char const* _answer, size_t _len );
@@ -81,10 +83,6 @@ struct uns4i_trc const* get_uns4i_data( char const* _answer, size_t _len )
 }
 
 
-bool mgos_ati_usn4i_init(void)
-{
-    return true;
-}
 
 /*-----------private section----------------*/
 struct Uns4i_Request{
