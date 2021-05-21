@@ -7,7 +7,8 @@ static struct uns4i_trc const* fill_inner( char const* _answer, size_t _len );
 static char const* get_request_string_inner( uint8_t _addr, uint8_t _code_isol, uint8_t _amplif );
 static size_t get_request_size_inner( void );
 
-/*
+
+#ifdef MGOS_HAVE_MJS
 static const struct mjs_c_struct_member uns4i_trc_descr[] = {
     {"VDC1", offsetof(struct uns4i_trc, VDC1), MJS_STRUCT_FIELD_TYPE_FLOAT, NULL },
     {"VAC1", offsetof(struct uns4i_trc, VAC1), MJS_STRUCT_FIELD_TYPE_FLOAT, NULL },
@@ -53,7 +54,7 @@ static const struct mjs_c_struct_member uns4i_trc_descr[] = {
 struct mjs_c_struct_member const* get_uns4i_trc_descr(void){
     return uns4i_trc_descr;
 };
-*/
+#endif
 
 char const* get_request_string( uint8_t _addr, uint8_t _code_isol, uint8_t _amplif )
 {

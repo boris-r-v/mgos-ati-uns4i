@@ -9,18 +9,11 @@ sources:
   - src
 
 libs:
-  - origin: https://github.com/mongoose-os-libs/core
-  - origin: https://github.com/mongoose-os-libs/mjs
 
 tags:
   - c
   - js
   - docs:misc:Module_ATI
-
-cdefs:
-  MGOS_HAVE_JS: 1
-build_vars:
-  MGOS_HAVE_JS: 1
 
 manifest_version: 2017-09-29
 

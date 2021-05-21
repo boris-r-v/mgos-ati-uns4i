@@ -7,8 +7,10 @@ extern "C" {
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "mgos.h"
-#include "mjs.h"
+#include <mgos.h>
+#ifdef MGOS_HAVE_MJS
+#include <mjs.h>
+#endif
 
 
 struct uns4i_trc{
@@ -23,7 +25,9 @@ struct uns4i_trc{
     uint16_t uns_mode, uns_diag;
 };
 
-//struct mjs_c_struct_member const* get_uns4i_trc_descr(void);
+#ifdef MGOS_HAVE_MJS
+struct mjs_c_struct_member const* get_uns4i_trc_descr(void);
+#endif
 
 char const* get_request_string( uint8_t _addr, uint8_t _code_isol, uint8_t _amplif );
 size_t get_request_size( void );
