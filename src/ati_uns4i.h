@@ -28,12 +28,12 @@ struct uns4i_data{
 
 #ifdef MGOS_HAVE_MJS
 struct mjs_c_struct_member const* get_uns4i_data_descr(void);
-//struct mjs_c_struct_member const* get_uns4i_uart_descr(void);
 #endif
 
-//struct uns4i_uart const* create( int _uart_no, int _addr );
-void create( int _uart_no, int _addr );
+void init_handler( int _uart_no, int _addr );
 struct uns4i_data const* get_data( );
+
+char* get_some(void) {return "TU PIZDA EBUCHAYA";};
 
 
 

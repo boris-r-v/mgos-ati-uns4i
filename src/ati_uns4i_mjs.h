@@ -53,14 +53,6 @@ struct mjs_c_struct_member const* get_uns4i_data_descr(void){
     return uns4i_data_descr;
 };
 
-static const struct mjs_c_struct_member uns4i_uart_descr[] = {
-    {"UartNo", offsetof(struct uns4i_uart, uart), MJS_STRUCT_FIELD_TYPE_UINT8, NULL },    
-    {"Addr", offsetof(struct uns4i_uart, addr), MJS_STRUCT_FIELD_TYPE_UINT8, NULL },   
-    {NULL, 0, MJS_STRUCT_FIELD_TYPE_INVALID, NULL},
-};
-struct mjs_c_struct_member const* get_uns4i_uart_descr(void){
-    return uns4i_data_descr;
-};
 #endif
 
 #endif // ATI_UNS4I_MJS

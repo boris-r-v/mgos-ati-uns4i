@@ -27,15 +27,17 @@ static uint16_t CRC16tabl( uint8_t *_buf, size_t _len );
 static bool check_crc_inner( char const* _answer, size_t _len );
 void fill_answer_inner( char const* _answer, size_t _len );
 
-void create( int _uart_no, int _addr )
+
+void init_handler( int _uart_no, int _addr )
 {
+    uns4i_uart_inner__.answer = &uns4i_uart_inner__.ans;
     uns4i_uart_inner__.uart = _uart_no & 0xff;    
     uns4i_uart_inner__.addr = _addr & 0xff;    
+    LOG(LL_INFO, ("Create UNS4i_Handler UART%d send %d bytes.", uns4i_uart_inner__.uart, uns4i_uart_inner__.addr ) );
+
     uns4i_uart_inner__.uart_status = UART_NOT_READY;    
     mbuf_init( uns4i_uart_inner__.answer, sizeof(struct UnsTrc_Answer)+2 );
-
     config_uart_inner( );
-    
 }
 
 struct uns4i_data const* get_data()
@@ -47,6 +49,22 @@ struct uns4i_data const* get_data()
 
     LOG(LL_INFO, ("UART%d send %d bytes.", uns4i_uart_inner__.uart, b ) );
     LOG(LL_INFO, ("UNS Answer id: %d.", uns4i_data_inner__.cntr ) );
+
+    char* res = "\x80\x20\x84\x10\xeb\x2c\xbc\x20\x08\x82\x3d\x00\x00\x00\x00\x00\x00\x00\x00\x36\xb8\x58\x3d\x00\x00\x00\x00\x00\x00\x00\x00\xfc\x01\x07\x00\xcd\x01\x02\xbd\x6c\x60\x82\x3d\x2b\x60\x2d\x3c\x2b\x60\x2d\x3c\x2b\x60\x2d\x3c\xe6\xd5\x2d\x3c\xe6\xd5\x2d\x3c\xa5\x00\x00\x00\x00\x00\x00\x00\x2b\x60\xad\x3c\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x8e\x00\x00\x00\x2b\x60\x2d\x3c\xe6\xd5\xad\x3c\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xe3\x00\x00\x00\x00\x00\x00\x03\x03\x5c";
+    //char* rsl = "\x80\x20\x84\x10\xeb\x2c\xbc\x20\x08\x82\x3d\x11\x11\x11\x11\x11\x11\x11\x11\x36\xb8\x58\x3d\x11\x11\x11\x11\x11\x11\x11\x11\xfc\x01\x07\x11\xcd\x01\x02\xbd\x6c\x60\x82\x3d\x2b\x60\x2d\x3c\x2b\x60\x2d\x3c\x2b\x60\x2d\x3c\xe6\xd5\x2d\x3c\xe6\xd5\x2d\x3c\xa5\x11\x11\x11\x11\x11\x11\x11\x2b\x60\xad\x3c\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x8e\x11\x11\x11\x2b\x60\x2d\x3c\xe6\xd5\xad\x3c\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\xe3\x11\x11\x11\x11\x11\x11\x03\x03\x5c";
+
+    memcpy(uns4i_uart_inner__.answer->buf, res, sizeof(struct UnsTrc_Answer) );
+
+    if ( uns4i_uart_inner__.answer->len == sizeof(struct UnsTrc_Answer) )
+    {
+    LOG(LL_INFO, ("CRC_OK" ) );
+        if (check_crc_inner( uns4i_uart_inner__.answer->buf, uns4i_uart_inner__.answer->len) )
+        {
+    LOG(LL_INFO, ("HANDLE_DATA" ) );
+            fill_answer_inner( uns4i_uart_inner__.answer->buf, uns4i_uart_inner__.answer->len );
+            mbuf_clear( uns4i_uart_inner__.answer );
+        }
+    }
 
     return &uns4i_data_inner__;
 }
@@ -155,7 +173,7 @@ void fill_answer_inner( char const* _answer, size_t _len )
 static bool check_crc_inner( char const* _answer, size_t _len )
 {
     uint8_t data[_len];
-    memcpy( data, _answer, _len-1 );
+    memcpy( data, _answer, _len );
     uint16_t crc_dev = data[_len-2] << 8 | data[_len-1];
     data[_len-1] = 0;
     data[_len-2] = 0;

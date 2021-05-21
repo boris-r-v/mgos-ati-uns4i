@@ -7,8 +7,7 @@ struct uns4i_uart{
     uint8_t uart;
     uint8_t addr;
     uint8_t uart_status;
-    struct mbuf *answer;
-
+    struct mbuf *answer, ans;
 };
 
 struct Uns4i_Request{
