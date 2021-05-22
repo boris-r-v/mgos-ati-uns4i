@@ -1,5 +1,5 @@
 author: Boris Rozhkin borisrozhkin@gmail.com
-name: ati_uns4i
+#name: ati_uns4i
 type: lib
 description: A USN4i data handle lib
 

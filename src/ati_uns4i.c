@@ -3,8 +3,6 @@
 #include "ati_uns4i_ep.h"
 
 #include "mgos.h"
-#include "mgos_app.h"
-#include "mgos_gpio.h"
 #include "mgos_timers.h"
 #include "mgos_uart.h"
 
@@ -13,8 +11,6 @@ static struct uns4i_data uns4i_data_inner__;
 static struct uns4i_uart uns4i_uart_inner__;
 
 static struct Uns4i_Request uns4i_request_inner__;
-bool mgos_ati_uns4i_init(void){ return true; }
-bool mgos_mgos_ati_uns4i_init(void){ return true; }
 
 enum UART_STATUS {UART_NOT_READY, UART_READY };
 
@@ -22,6 +18,7 @@ static void config_uart_inner( );
 
 static uint8_t const* get_request_buffer_inner( uint8_t _addr, uint8_t _code_isol, uint8_t _amplif );
 static size_t get_request_size_inner( void );
+static void uart_send_request( void );
 
 static uint16_t CRC16tabl( uint8_t *_buf, size_t _len );
 static bool check_crc_inner( char const* _answer, size_t _len );
@@ -42,6 +39,13 @@ void init_handler( int _uart_no, int _addr )
 
 struct uns4i_data const* get_data()
 {
+    return &uns4i_data_inner__;
+}
+
+/*-----------private section----------------*/
+
+static void uart_send_request( void )
+{
     size_t b = mgos_uart_write( uns4i_uart_inner__.uart,
                                 get_request_buffer_inner( uns4i_uart_inner__.addr, 0x00, 0x00 ),
                                 get_request_size_inner( )
@@ -51,12 +55,8 @@ struct uns4i_data const* get_data()
     LOG(LL_INFO, ("UNS Answer id: %d.", uns4i_data_inner__.cntr ) );
 
     char* res = "\x80\x20\x84\x10\xeb\x2c\xbc\x20\x08\x82\x3d\x00\x00\x00\x00\x00\x00\x00\x00\x36\xb8\x58\x3d\x00\x00\x00\x00\x00\x00\x00\x00\xfc\x01\x07\x00\xcd\x01\x02\xbd\x6c\x60\x82\x3d\x2b\x60\x2d\x3c\x2b\x60\x2d\x3c\x2b\x60\x2d\x3c\xe6\xd5\x2d\x3c\xe6\xd5\x2d\x3c\xa5\x00\x00\x00\x00\x00\x00\x00\x2b\x60\xad\x3c\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x8e\x00\x00\x00\x2b\x60\x2d\x3c\xe6\xd5\xad\x3c\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xe3\x00\x00\x00\x00\x00\x00\x03\x03\x5c";
-    //char* rsl = "\x80\x20\x84\x10\xeb\x2c\xbc\x20\x08\x82\x3d\x11\x11\x11\x11\x11\x11\x11\x11\x36\xb8\x58\x3d\x11\x11\x11\x11\x11\x11\x11\x11\xfc\x01\x07\x11\xcd\x01\x02\xbd\x6c\x60\x82\x3d\x2b\x60\x2d\x3c\x2b\x60\x2d\x3c\x2b\x60\x2d\x3c\xe6\xd5\x2d\x3c\xe6\xd5\x2d\x3c\xa5\x11\x11\x11\x11\x11\x11\x11\x2b\x60\xad\x3c\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x8e\x11\x11\x11\x2b\x60\x2d\x3c\xe6\xd5\xad\x3c\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\x11\xe3\x11\x11\x11\x11\x11\x11\x03\x03\x5c";
-
     mbuf_append(uns4i_uart_inner__.answer, res, sizeof(struct UnsTrc_Answer) );
-
     LOG(LL_INFO, ("LEN %d %d", (int)uns4i_uart_inner__.answer->len, (int)sizeof(struct UnsTrc_Answer) ) );
-
     if ( uns4i_uart_inner__.answer->len == sizeof(struct UnsTrc_Answer) )
     {
     LOG(LL_INFO, ("CRC_OK" ) );
@@ -68,11 +68,7 @@ struct uns4i_data const* get_data()
         }
     }
 
-    return &uns4i_data_inner__;
 }
-
-/*-----------private section----------------*/
-
 
 
 static void uart_receive_dispatcher(int _uart_no, void *_arg) 
@@ -87,7 +83,7 @@ static void uart_receive_dispatcher(int _uart_no, void *_arg)
     mgos_uart_read_mbuf( _uart_no, &lb, rx_av );
   
     mbuf_append( uns4i_uart_inner__.answer, lb.buf, lb.len);
-
+    //FIX ME - данные могут за один раз не прийти - нужно дождаться всего пакета
     LOG(LL_INFO, ("UART%d read %d bytes, in answer buffer %d bytes.", uns4i_uart_inner__.uart, lb.len, uns4i_uart_inner__.answer->len ) );
     
     if ( uns4i_uart_inner__.answer->len == sizeof(struct UnsTrc_Answer) )
@@ -194,4 +190,17 @@ static uint16_t CRC16tabl( uint8_t *_buf, size_t _len )
         crc = crc_tab16[crc >> 8] ^ ((crc << 8) | _buf[data_index++]);
     }
     return crc;
+}
+
+static void timer_cb(void *arg) 
+{
+    LOG(LL_INFO, ("LIB in timer: send request to UART%d", uns4i_uart_inner__.uart ) );
+    uart_send_request();
+    (void) arg;
+}
+
+bool mgos_mgos_ati_uns4i_init(void)
+{ 
+    mgos_set_timer(1000 /* ms */, true /* repeat */, timer_cb, NULL /* arg */);
+    return true; 
 }
