@@ -1,5 +1,7 @@
 let UNS4i = {
-
+    _get: ffi( 'void* get_data(void)' ),
+    _descr: ffi('void* get_uns4i_data_descr(void)'),
+  
     // ## **`UNS4i.create(uart_no, address)`**
     // Create a USN4i handler.
     // A handler receives 2 parameters: UNS4i handle uart number [0,1,2,etc] and uns2i address [from 0 to 255]
@@ -9,13 +11,12 @@ let UNS4i = {
     // ```javascript
     // load('api_ati_uns4i.js');
     //      ...
-    // let handler = UNS4i.create( 1, 32 );
+    // let uartno = 1;
+    // let uns_addr = 32;
+    // UNS4i.init(uartno, uns_addr);
     // ```
     init: ffi( 'void init_handler(int, int)' ),
 
-
-    _get: ffi( 'void* get_data(void)' ),
-    _descr: ffi('void* get_uns4i_data_descr(void)'),
     // ## **`UNS4i.get()`**
     // Get a USN4i sizing data.
     // Has no paramtrs
@@ -26,6 +27,7 @@ let UNS4i = {
     // load('api_ati_uns4i.js');
     //      ...
     // let data = UNS4i.get( );
+    // print ( JSON.stringify( UNS4i.get() ) )
     // print ( data.VDC1 )
     // ```
     get: function() {
