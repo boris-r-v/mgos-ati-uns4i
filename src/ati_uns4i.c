@@ -14,7 +14,7 @@ static struct Uns4i_Request uns4i_request_inner__;
 
 enum UART_STATUS {UART_NOT_READY, UART_READY };
 
-static void config_uart_inner( );
+static void config_uart_inner( int _speed );
 
 static uint8_t const* get_request_buffer_inner( uint8_t _addr, uint8_t _code_isol, uint8_t _amplif );
 static size_t get_request_size_inner( void );
@@ -25,7 +25,7 @@ static bool check_crc_inner( char const* _answer, size_t _len );
 void fill_answer_inner( char const* _answer, size_t _len );
 
 
-void init_handler( int _uart_no, int _addr )
+void init_handler( int _uart_no, int _addr, int _speed )
 {
     uns4i_uart_inner__.answer = &uns4i_uart_inner__.ans;
     uns4i_uart_inner__.uart = _uart_no & 0xff;    
@@ -33,8 +33,10 @@ void init_handler( int _uart_no, int _addr )
     LOG(LL_INFO, ("Create UNS4i_Handler UART%d send %d bytes.", uns4i_uart_inner__.uart, uns4i_uart_inner__.addr ) );
 
     uns4i_uart_inner__.uart_status = UART_NOT_READY;    
-    mbuf_init( uns4i_uart_inner__.answer, sizeof(struct UnsTrc_Answer)+2 );
-    config_uart_inner( );
+    mbuf_init( uns4i_uart_inner__.answer, sizeof(struct UnsTrc_Answer) );
+    LOG(LL_INFO, ("Createe UNS4i_answer buff used %d, capacity %d, answer struct %d bytes.",  uns4i_uart_inner__.answer->len, uns4i_uart_inner__.answer->size, sizeof(struct UnsTrc_Answer) ) );
+
+    config_uart_inner( _speed );
 }
 
 struct uns4i_data const* get_data()
@@ -51,23 +53,8 @@ static void uart_send_request( void )
                                 get_request_size_inner( )
     );
 
-    LOG(LL_INFO, ("UART%d send %d bytes.", uns4i_uart_inner__.uart, b ) );
-    LOG(LL_INFO, ("UNS Answer id: %d.", uns4i_data_inner__.cntr ) );
-
-    char* res = "\x80\x20\x84\x10\xeb\x2c\xbc\x20\x08\x82\x3d\x00\x00\x00\x00\x00\x00\x00\x00\x36\xb8\x58\x3d\x00\x00\x00\x00\x00\x00\x00\x00\xfc\x01\x07\x00\xcd\x01\x02\xbd\x6c\x60\x82\x3d\x2b\x60\x2d\x3c\x2b\x60\x2d\x3c\x2b\x60\x2d\x3c\xe6\xd5\x2d\x3c\xe6\xd5\x2d\x3c\xa5\x00\x00\x00\x00\x00\x00\x00\x2b\x60\xad\x3c\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x8e\x00\x00\x00\x2b\x60\x2d\x3c\xe6\xd5\xad\x3c\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xe3\x00\x00\x00\x00\x00\x00\x03\x03\x5c";
-    mbuf_append(uns4i_uart_inner__.answer, res, sizeof(struct UnsTrc_Answer) );
-    LOG(LL_INFO, ("LEN %d %d", (int)uns4i_uart_inner__.answer->len, (int)sizeof(struct UnsTrc_Answer) ) );
-    if ( uns4i_uart_inner__.answer->len == sizeof(struct UnsTrc_Answer) )
-    {
-    LOG(LL_INFO, ("CRC_OK" ) );
-        if (check_crc_inner( uns4i_uart_inner__.answer->buf, uns4i_uart_inner__.answer->len) )
-        {
-    LOG(LL_INFO, ("HANDLE_DATA" ) );
-            fill_answer_inner( uns4i_uart_inner__.answer->buf, uns4i_uart_inner__.answer->len );
-            mbuf_clear( uns4i_uart_inner__.answer );
-        }
-    }
-
+    LOG(LL_DEBUG, ("UART%d send %d bytes.", uns4i_uart_inner__.uart, b ) );
+    LOG(LL_DEBUG, ("UNS Answer id: %d.", uns4i_data_inner__.cntr ) );
 }
 
 
@@ -78,18 +65,20 @@ static void uart_receive_dispatcher(int _uart_no, void *_arg)
     size_t rx_av = mgos_uart_read_avail( _uart_no );
     if (rx_av == 0) return;
 
-    LOG(LL_INFO, ("UART%d ready %d bytes.", uns4i_uart_inner__.uart, rx_av ) );
+    LOG(LL_DEBUG, ("UART%d ready %d bytes.", uns4i_uart_inner__.uart, rx_av ) );
 
     mgos_uart_read_mbuf( _uart_no, &lb, rx_av );
   
     mbuf_append( uns4i_uart_inner__.answer, lb.buf, lb.len);
     //FIX ME - данные могут за один раз не прийти - нужно дождаться всего пакета
-    LOG(LL_INFO, ("UART%d read %d bytes, in answer buffer %d bytes.", uns4i_uart_inner__.uart, lb.len, uns4i_uart_inner__.answer->len ) );
+    LOG(LL_DEBUG, ("UART%d read %d bytes, in answer buffer %d bytes.", uns4i_uart_inner__.uart, lb.len, uns4i_uart_inner__.answer->len ) );
     
     if ( uns4i_uart_inner__.answer->len == sizeof(struct UnsTrc_Answer) )
     {
+        LOG(LL_DEBUG, ("CRC_OK" ) );
         if (check_crc_inner( uns4i_uart_inner__.answer->buf, uns4i_uart_inner__.answer->len) )
         {
+            LOG(LL_DEBUG, ("HANDLE_DATA" ) );
             fill_answer_inner( uns4i_uart_inner__.answer->buf, uns4i_uart_inner__.answer->len );
             mbuf_clear( uns4i_uart_inner__.answer );
         }
@@ -102,11 +91,11 @@ static void uart_receive_dispatcher(int _uart_no, void *_arg)
 }
 
 
-static void config_uart_inner( )
+static void config_uart_inner( int _speed )
 {
     struct mgos_uart_config ucfg;
     mgos_uart_config_set_defaults( uns4i_uart_inner__.uart, &ucfg);
-    ucfg.baud_rate = 115200;
+    ucfg.baud_rate = _speed;
     ucfg.num_data_bits = 8;
     ucfg.parity = MGOS_UART_PARITY_NONE;
     ucfg.stop_bits = MGOS_UART_STOP_BITS_1;
@@ -144,7 +133,7 @@ static uint8_t const* get_request_buffer_inner( uint8_t _addr, uint8_t _code_iso
     uint8_t const* ptr = (const uint8_t*)&uns4i_request_inner__;    
     for (i = 0; i < sizeof(struct Uns4i_Request); i++)
     {
-        LOG(LL_INFO, ("REQUEST: '%02X'", ptr[i] ) );    
+        LOG(LL_DEBUG, ("REQUEST: '%02X'", ptr[i] ) );    
     }
 
 
@@ -194,13 +183,13 @@ static uint16_t CRC16tabl( uint8_t *_buf, size_t _len )
 
 static void timer_cb(void *arg) 
 {
-    LOG(LL_INFO, ("LIB in timer: send request to UART%d", uns4i_uart_inner__.uart ) );
+    LOG(LL_DEBUG, ("LIB in timer: send request to UART%d", uns4i_uart_inner__.uart ) );
     uart_send_request();
     (void) arg;
 }
 
 bool mgos_mgos_ati_uns4i_init(void)
 { 
-    mgos_set_timer(1000 /* ms */, true /* repeat */, timer_cb, NULL /* arg */);
+    mgos_set_timer(250 /* ms */, true /* repeat */, timer_cb, NULL /* arg */);
     return true; 
 }

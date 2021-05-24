@@ -30,7 +30,7 @@ struct uns4i_data{
 struct mjs_c_struct_member const* get_uns4i_data_descr(void);
 #endif
 
-void init_handler( int _uart_no, int _addr );
+void init_handler( int _uart_no, int _addr, int _baudrate );
 struct uns4i_data const* get_data( );
 
 char* get_some(void) {return "TU PIZDA EBUCHAYA";};
