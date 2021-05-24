@@ -53,6 +53,7 @@ static void uart_send_request( void )
                                 get_request_size_inner( )
     );
 
+    mbuf_clear( uns4i_uart_inner__.answer );
     LOG(LL_DEBUG, ("UART%d send %d bytes.", uns4i_uart_inner__.uart, b ) );
     LOG(LL_DEBUG, ("UNS Answer id: %d.", uns4i_data_inner__.cntr ) );
 }
@@ -69,8 +70,12 @@ static void uart_receive_dispatcher(int _uart_no, void *_arg)
 
     mgos_uart_read_mbuf( _uart_no, &lb, rx_av );
   
+    if ( (rx_av + uns4i_uart_inner__.answer->len) > sizeof(struct UnsTrc_Answer) )
+    {
+        LOG(LL_WARN, ("UART%d read more bytes(%d) than expected(%d) - answer broken - wait for next request circle.", uns4i_uart_inner__.uart, (rx_av + uns4i_uart_inner__.answer->len), sizeof(struct UnsTrc_Answer) ) );
+        return;
+    }
     mbuf_append( uns4i_uart_inner__.answer, lb.buf, lb.len);
-    //FIX ME - данные могут за один раз не прийти - нужно дождаться всего пакета
     LOG(LL_DEBUG, ("UART%d read %d bytes, in answer buffer %d bytes.", uns4i_uart_inner__.uart, lb.len, uns4i_uart_inner__.answer->len ) );
     
     if ( uns4i_uart_inner__.answer->len == sizeof(struct UnsTrc_Answer) )
@@ -83,7 +88,7 @@ static void uart_receive_dispatcher(int _uart_no, void *_arg)
             mbuf_clear( uns4i_uart_inner__.answer );
         }
     }
-    
+
 
   /* Finally, remove the line data from the buffer. */
   mbuf_remove( &lb, lb.len );
