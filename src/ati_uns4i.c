@@ -14,7 +14,7 @@ static struct Uns4i_Request uns4i_request_inner__;
 
 enum UART_STATUS {UART_NOT_READY, UART_READY };
 
-static void config_uart_inner( int _speed );
+static void config_uart_inner( int _speed, int uart_no );
 
 static uint8_t const* get_request_buffer_inner( uint8_t _addr, uint8_t _code_isol, uint8_t _amplif );
 static size_t get_request_size_inner( void );
@@ -36,7 +36,7 @@ void init_handler( int _uart_no, int _addr, int _speed )
     mbuf_init( uns4i_uart_inner__.answer, sizeof(struct UnsTrc_Answer) );
     LOG(LL_INFO, ("Createe UNS4i_answer buff used %d, capacity %d, answer struct %d bytes.",  uns4i_uart_inner__.answer->len, uns4i_uart_inner__.answer->size, sizeof(struct UnsTrc_Answer) ) );
 
-    config_uart_inner( _speed );
+    config_uart_inner( _speed, _uart_no );
 }
 
 struct uns4i_data const* get_data()
@@ -96,7 +96,7 @@ static void uart_receive_dispatcher(int _uart_no, void *_arg)
 }
 
 
-static void config_uart_inner( int _speed )
+static void config_uart_inner( int _speed, int uart_no )
 {
     struct mgos_uart_config ucfg;
     mgos_uart_config_set_defaults( uns4i_uart_inner__.uart, &ucfg);
@@ -104,6 +104,13 @@ static void config_uart_inner( int _speed )
     ucfg.num_data_bits = 8;
     ucfg.parity = MGOS_UART_PARITY_NONE;
     ucfg.stop_bits = MGOS_UART_STOP_BITS_1;
+
+    if ( 1 == uart_no )
+    {
+        ucfg.dev.rx_gpio = 23;
+        ucfg.dev.tx_gpio = 22;
+    }
+
     if ( mgos_uart_configure( uns4i_uart_inner__.uart, &ucfg ) )  
     {
         uns4i_uart_inner__.uart_status = UART_READY;    
