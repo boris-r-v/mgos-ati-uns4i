@@ -1,3 +1,4 @@
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Build Status](https://travis-ci.com/boris-r-v/mgos-ati-uns4i.svg?branch=master)](https://travis-ci.com/boris-r-v/mgos-ati-uns4i)
 
 mgos-ati-uns4i
